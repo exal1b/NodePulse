@@ -5,6 +5,8 @@ import qrcode
 from ServerConnector import ServerConnector
 from ecash_api import BlockchairAPI
 from LoginManager import LoginManager
+import sys
+import os
 
 class App(ttk.Frame):
     def __init__(self, root):
@@ -16,49 +18,82 @@ class App(ttk.Frame):
         self.LoginManager = LoginManager()
         self.login_window = None
         self.edit_bitcoin_conf_window = None
+        self.set_window_icon()
+
+    def set_window_icon(self):
+        # Load the custom logo image for the window icon
+        icon_path = self.resource_path("nodepulse_logo.png")
+        icon_image = Image.open(icon_path)
+        icon_image = icon_image.resize((50, 50), Image.Resampling.LANCZOS)  # Resize if necessary
+        self.icon = ImageTk.PhotoImage(icon_image)
+        self.root.iconphoto(True, self.icon)  # Set the icon to the window
 
     def setup_widgets(self):
+        self.spacing = 10
         # Create a Commands frame for the buttons
         self.commands_frame = ttk.LabelFrame(self, text="Commands", padding=(20, 10))
-        self.commands_frame.grid(row=0, column=0, padx=(20, 15), pady=(20, 20), rowspan=3, sticky="nsew")
+        self.commands_frame.grid(row=0, column=0, padx=(15, 15), pady=(20, 10), rowspan=2, sticky="nsew")
 
         # Commands frame - Button - Connect to server
         self.connect_to_server_button = ttk.Button(self.commands_frame, text="Connect to server", command=self.show_login_window)
-        self.connect_to_server_button.grid(row=0, column=0, padx=5, pady=12, sticky="nsew")
+        self.connect_to_server_button.grid(row=0, column=0, padx=5, pady=self.spacing, sticky="nsew")
 
         # Commands frame - Button - Start the node
         self.select_node_button = ttk.Button(self.commands_frame, text="Select a node", command=self.handle_login)
-        self.select_node_button.grid(row=1, column=0, padx=5, pady=12, sticky="nsew")
+        self.select_node_button.grid(row=1, column=0, padx=5, pady=self.spacing, sticky="nsew")
 
         # Commands frame - Button - Stop the node
         self.start_or_stop_the_node_button = ttk.Button(self.commands_frame, text="Start the node", command=self.node_error_msg4)
-        self.start_or_stop_the_node_button.grid(row=2, column=0, padx=5, pady=12, sticky="nsew")
+        self.start_or_stop_the_node_button.grid(row=2, column=0, padx=5, pady=self.spacing, sticky="nsew")
 
         # Commands frame - Button - Install a node
-        self.install_a_node_button = ttk.Button(self.commands_frame, text="Install a node", command=self.server_error_msg)
-        self.install_a_node_button.grid(row=3, column=0, padx=5, pady=12, sticky="nsew")
+        #self.install_a_node_button = ttk.Button(self.commands_frame, text="Install a node", command=self.server_error_msg)
+        #self.install_a_node_button.grid(row=3, column=0, padx=5, pady=5, sticky="nsew")
 
         # Commands frame - Button - Update the node
-        self.update_the_node_button = ttk.Button(self.commands_frame, text="Update the node")
-        self.update_the_node_button.grid(row=4, column=0, padx=5, pady=12, sticky="nsew")
+        #self.update_the_node_button = ttk.Button(self.commands_frame, text="Update the node")
+        #self.update_the_node_button.grid(row=4, column=0, padx=5, pady=12, sticky="nsew")
 
         # Commands frame - Button - Edit Bitcoin.conf
-        self.edit_bitcoinconf_button = ttk.Button(self.commands_frame, text="Edit Bitcoin.conf", command=self.create_edit_bitcoin_conf_window)
-        self.edit_bitcoinconf_button.grid(row=5, column=0, padx=5, pady=11, sticky="nsew")
+        #self.edit_bitcoinconf_button = ttk.Button(self.commands_frame, text="Edit Bitcoin.conf", command=self.create_edit_bitcoin_conf_window)
+        #self.edit_bitcoinconf_button.grid(row=5, column=0, padx=5, pady=11, sticky="nsew")
 
         # Commands frame - Button - Support us
         self.support_us_button = ttk.Button(self.commands_frame, text="Support us", command=self.show_qr_code)
-        self.support_us_button.grid(row=6, column=0, padx=5, pady=11, sticky="nsew")
+        self.support_us_button.grid(row=3, column=0, padx=5, pady=self.spacing, sticky="nsew")
+
+        # Create a Refresh frame
+        self.refresh_frame = ttk.LabelFrame(self, text="Connection status", padding=(20, 10))
+        self.refresh_frame.grid(row=2, column=0, padx=(15, 15), pady=(10, 20), sticky="nsew")
+
+
+        # Refresh frame - Ping
+        self.ping_label = tk.Label(self.refresh_frame, text="Ping ")
+        self.ping_label.grid(row=0, column=0, padx=0, pady=7, sticky="w")
+
+        # Refresh frame - Last Refresh
+        self.last_refresh_label = tk.Label(self.refresh_frame, text="Last refresh time")
+        self.last_refresh_label.grid(row=1, column=0, padx=0, pady=(0, 0), sticky="w")
+        self.last_refresh_time = tk.Label(self.refresh_frame, text="N/A")
+        self.last_refresh_time.grid(row=2, column=0, padx=0, pady=(0, 7), sticky="w")
+
+        # Refresh frame - Count down
+        self.resfresh_countdown_label = tk.Label(self.refresh_frame, text="Refreshing in 10s")
+        self.resfresh_countdown_label.grid(row=3, column=0, padx=0, pady=0, sticky="w")
+
+        # Progressbar
+        self.progress = ttk.Progressbar(self.refresh_frame, value=0, mode="determinate", length=132, maximum=100)
+        self.progress.grid(row=4, column=0, padx=(2, 0), pady=(0, 0), sticky='w')
 
         # Create a Frame to display main info
-        self.main_info_frame = ttk.LabelFrame(self, text="Main Information", padding=(20, 10))
-        self.main_info_frame.grid( row=0, column=1, padx=(10, 20), pady=(20, 9), sticky="new")
+        self.main_info_frame = ttk.LabelFrame(self, text="Main Information", padding=(10, 10))
+        self.main_info_frame.grid( row=0, column=1, padx=(10, 20), pady=(20, 10), sticky="new")
 
         # Load the icon image
-        self.grey_icon_file = Image.open(r"C:\Users\Mises\PycharmProjects\NodePulse\Azure-ttk-theme-main\grey_icon.png")
-        self.green_icon_file = Image.open(r"C:\Users\Mises\PycharmProjects\NodePulse\Azure-ttk-theme-main\green_icon.png")
-        self.red_icon_file = Image.open(r"C:\Users\Mises\PycharmProjects\NodePulse\Azure-ttk-theme-main\red_icon.png")
-        self.blue_icon_file = Image.open(r"C:\Users\Mises\PycharmProjects\NodePulse\Azure-ttk-theme-main\blue_icon.png")
+        self.grey_icon_file = Image.open(self.resource_path("grey_icon.png"))
+        self.green_icon_file = Image.open(self.resource_path("green_icon.png"))
+        self.red_icon_file = Image.open(self.resource_path("red_icon.png"))
+        self.blue_icon_file = Image.open(self.resource_path("blue_icon.png"))
 
         # Resize the icon to 15x15 pixels
         self.grey_icon_file = self.grey_icon_file.resize((15, 15), Image.Resampling.LANCZOS)
@@ -128,7 +163,7 @@ class App(ttk.Frame):
 
         # Create a Frame to display other info
         self.other_info_frame = ttk.LabelFrame(self, text="Other Information", padding=(10, 10))
-        self.other_info_frame.grid(row=1, column=1, padx=(10, 20), pady=(9, 9), sticky="new")
+        self.other_info_frame.grid(row=1, column=1, padx=(10, 20), pady=(10, 10), sticky="new")
 
         # Other info frame - Client version info
         self.client_version_label = tk.Label(self.other_info_frame, text="Client version")
@@ -158,8 +193,8 @@ class App(ttk.Frame):
         self.main_info_frame.grid_columnconfigure(6, minsize=10)
 
         # Create a Frame to display my rewards
-        self.panned_window_frame = ttk.LabelFrame(self, text="My recent rewards", padding=(10, 10))
-        self.panned_window_frame.grid(row=2, column=1, padx=(10, 20), pady=(9, 20), sticky="new")
+        self.panned_window_frame = ttk.LabelFrame(self, text="Rewards history", padding=(10, 10))
+        self.panned_window_frame.grid(row=2, column=1, padx=(10, 20), pady=(10, 20), sticky="new")
 
         # Panedwindow
         self.paned = ttk.PanedWindow(self.panned_window_frame)
@@ -348,14 +383,20 @@ class App(ttk.Frame):
         # Create a top-level window (popup)
         popup = Toplevel(self)
         popup.title("eCash Address for donation")
-        popup.geometry("410x410")
+        popup.geometry("350x380")
+
+        # Configure the grid system to center widgets
+        popup.grid_columnconfigure(0, weight=1)
+        popup.grid_rowconfigure(0, weight=1)
+        popup.grid_rowconfigure(1, weight=1)
+        popup.grid_rowconfigure(2, weight=1)
 
         # Display the QR code
-        img = img.resize((340, 340), Image.Resampling.NEAREST)
+        img = img.resize((280, 280), Image.Resampling.NEAREST)
         img = ImageTk.PhotoImage(img)
         label_qr = Label(popup, image=img)
         label_qr.image = img
-        label_qr.pack(pady=5)
+        label_qr.grid(row=0, column=0, pady=0, padx=0, sticky="nsew")
 
         # Display the Bitcoin address in a Text widget for selectable text
         text_widget_qr = Text(popup, height=1, wrap='none')
@@ -363,7 +404,15 @@ class App(ttk.Frame):
         text_widget_qr.tag_configure("center", justify='center')
         text_widget_qr.tag_add("center", "1.0", "end")
         text_widget_qr.config(state='disabled')  # Make the text widget read-only
-        text_widget_qr.pack(pady=10)
+        text_widget_qr.grid(row=1, column=0, pady=0, padx=0, sticky="new")
+
+        def copy_address():
+            popup.clipboard_clear()
+            popup.clipboard_append(bitcoin_address)
+
+        # Commands frame - Button - Connect to server
+        copy_address_button = ttk.Button(popup, text="Copy to clipboard", command=copy_address)
+        copy_address_button.grid(row=2, column=0, pady=0, padx=80, sticky="new")
 
     def update_icon(self, label, icon_color):
         if icon_color == 'green':
@@ -391,40 +440,45 @@ class App(ttk.Frame):
         self.root.after(0, self.update_treeview_main_thread, api_output)
 
     def update_treeview_main_thread(self, api_output):
-        print("updating treeview via Gui function")
+        #print("Updating treeview via GUI function")
         if self.treeview:
             for item in self.treeview.get_children():
                 self.treeview.delete(item)
 
-            # Insert rewards into the Treeview
-            if api_output:
-                for tx_hash, details in api_output.items():
-                    self.treeview.insert(
-                        "",
-                        "end",
-                        text=(details['local_date_time'][:16]),
-                        values=(
-                        "{:,}".format(details['block_height']), "{:,.2f}".format(float(details['amount'] / 100))))
+            # Insert rewards into the Treeview, filtering by is_coinbase = True
+            for tx in api_output:
+                if not tx.get("is_coinbase", False):  # Skip if is_coinbase is False
+                    continue
+
+                self.treeview.insert(
+                    "",
+                    "end",
+                    text=(tx.get("local_time", "N/A")[:16]),  # Local time column (#0)
+                    values=(
+                        f"{tx.get('block_height', 'N/A'):,}",  # Blockheight column
+                        f"{tx.get('tx_value', 0) / 10:,.2f}",  # Amount in XEC column
+                    )
+                )
 
     def update_info(self, node_output):
         # Update install node button
-        if node_output['Server'] != "Connected":
-            self.install_a_node_button.config(command=self.server_error_msg)
-            self.update_button(start_or_stop_the_node_button, "Start the node", self.node_error_msg4)
-        elif node_output['Node'] == "Connected":
-            self.install_a_node_button.config(command=self.node_error_msg1)
-        elif node_output['Node'] == "N/A":
-            self.install_a_node_button.config(command=self.node_error_msg3)
-        else:
-            self.install_a_node_button.config(command=self.create_install_node_window)
+        #if node_output['Server'] != "Connected":
+        #    self.install_a_node_button.config(command=self.server_error_msg)
+        #    self.update_button(start_or_stop_the_node_button, "Start the node", self.node_error_msg4)
+        #elif node_output['Node'] == "Connected":
+        #    self.install_a_node_button.config(command=self.node_error_msg1)
+        #elif node_output['Node'] == "N/A":
+        #    self.install_a_node_button.config(command=self.node_error_msg3)
+        #else:
+        #    self.install_a_node_button.config(command=self.create_install_node_window)
 
         # Update edit bitcoin.conf button
-        if node_output['Server'] != "Connected":
-            self.edit_bitcoinconf_button.config(command=self.server_error_msg)
-        elif node_output['Node'] == "Connected":
-            self.edit_bitcoinconf_button.config(command=self.node_error_msg2)
-        else:
-            self.edit_bitcoinconf_button.config(command=self.create_edit_bitcoin_conf_window)
+        #if node_output['Server'] != "Connected":
+        #    self.edit_bitcoinconf_button.config(command=self.server_error_msg)
+        #elif node_output['Node'] == "Connected":
+        #    self.edit_bitcoinconf_button.config(command=self.node_error_msg2)
+        #else:
+        #    self.edit_bitcoinconf_button.config(command=self.create_edit_bitcoin_conf_window)
 
         # Update start or stop the node button
         if node_output['Server'] != "Connected":
@@ -457,7 +511,7 @@ class App(ttk.Frame):
         # Update chain status
         if node_output["Chain"] == "Main":
             self.update_icon(self.chain_status_icon_label, "green")
-        elif node_output["Chain"] == "N/A":
+        elif node_output["Chain"] in ("N/A", "test", 'regtest'):
             self.update_icon(self.chain_status_icon_label, "grey")
         else:
             self.update_icon(self.chain_status_icon_label, "red")
@@ -505,6 +559,12 @@ class App(ttk.Frame):
         reformatted_client_version = node_output["Selected Node"].replace('-', ' ')
         self.update_label_text(self.client_version_output, reformatted_client_version)
 
+        # Update last refresh time
+        self.update_label_text(self.last_refresh_time, node_output['Last Refresh'])
+
+        #Ipdate Ping
+        self.update_label_text(self.ping_label, f"Ping {node_output['Ping']}")
+
     def new_reward_messagebox(self, formatted_reward):
         messagebox.showinfo("Congratulations", f"You've received a reward of {formatted_reward} XEC")
 
@@ -533,3 +593,28 @@ class App(ttk.Frame):
 
     def node_error_msg5(self):
         messagebox.showerror("Error", f"No node was found")
+
+    def start_count_down(self):
+        self.progress['value'] = 0  # Reset progress bar
+        self.count_down(100)  # Start the countdown with 100 steps (10 seconds, 0.1-second intervals)
+
+    def count_down(self, remaining_steps):
+        if self.ServerConnector.kill_switch.is_set():
+            self.progress['value'] = 0
+            self.resfresh_countdown_label.config(text="Stopped")
+            return
+
+        if remaining_steps >= 0:
+            self.progress['value'] = (100 - remaining_steps)  # Update progress bar
+            self.resfresh_countdown_label.config(
+                text=f"Refreshing in {(remaining_steps) / 10:.1f}s"
+            )
+            self.root.after(100, self.count_down, remaining_steps - 1)
+        else:
+            self.progress['value'] = 0
+            self.ServerConnector.connect_to_node()
+
+    def resource_path(self, relative_path):
+        """Get the absolute path to a resource, works for PyInstaller and development."""
+        base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
+        return os.path.join(base_path, relative_path)

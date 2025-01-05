@@ -1,14 +1,14 @@
 import json
 import os
 from getpass import getpass
+from config import BASE_DIRECTORY
+
 
 # LoginManager class definition
 class LoginManager:
     def __init__(self, credentials_file='credentials.json'):
-        # Define the path to the user's home directory
-        home_directory = os.path.expanduser("~")
-        # Create a standard directory under the user's home directory
-        self.credentials_file = os.path.join(home_directory, '.config', credentials_file)
+        # Create a standard directory under the user's home directory / NodePulse
+        self.credentials_file = os.path.join(BASE_DIRECTORY, credentials_file)
         directory = os.path.dirname(self.credentials_file)
         # Ensure the directory exists
         os.makedirs(directory, exist_ok=True)
