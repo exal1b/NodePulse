@@ -198,6 +198,7 @@ class ServerConnector:
                 return
             else:
                 print("Node is on")
+                self.node_output['Server'] = 'Connected'
                 self.node_output['Node'] = "Connected"
 
         filtered_lines_command1 = []
@@ -223,6 +224,8 @@ class ServerConnector:
             for line in filtered_lines_command2:
                 print(line)
 
+            # Server info
+            self.node_output['Server'] = "Connected"
 
             # Chain info
             self.node_output["Chain"] = filtered_lines_command1[1][11:].replace(",", "").replace('"', '').replace(':', '').capitalize()
